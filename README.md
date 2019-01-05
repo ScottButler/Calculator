@@ -19,3 +19,5 @@ Calculator made by interfacing ATMEGA644A with LCD and 4 X 4 button matrix
 - Press Enter, second string terminated
 - Decimal point location for both strings is saved
 - Strings with decimal points are saved, no math is done yet
+
+- Now, only one decimal point allowed in each number

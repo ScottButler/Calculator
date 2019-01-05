@@ -25,7 +25,7 @@ int main(void)
 	uint8_t has_equal_been_pressed = 0;
 	uint8_t operation = 0;
 	volatile uint8_t decimal_location1 = 32;    // initialize these out of bounds, if out of bound then there is no decimal point
-	volatile uint8_t decimal_location2 = 32;
+	volatile uint8_t decimal_location2 = 64;
 	
 	
 	// Disable JTAG, free all of PortC
@@ -229,28 +229,36 @@ int main(void)
 			sei();
 		}
 		
-		// decimal point
+		// decimal point ('.')
+		// need way to make sure only 1 dp for each string maximum
+
 		if (!(PORTA & (1<<PA3)) && !(PINA & (1<<PINA4)) && (LCD_position < 16) && (has_equal_been_pressed == 0))
 		{
 			cli();
-			send_10_bits(1,0,'.');
+			//send_10_bits(1,0,'.');
 			while (!(PINA & (1<<PINA4)))
 			{
 				cli();
 			}
 
 			_delay_ms(10);    // may do not need this
-			if (operation == 0)    // +,-,*,/ not pressed yet
+			// decimal_location1 > 15; makes it so that only 1 decimal allode in string1
+			if ((operation == 0) && (decimal_location1 > 15))    // +,-,*,/ not pressed yet
 			{
 				decimal_location1 = LCD_position;
+				send_10_bits(1,0,'.');
+				*str_ptr = '.';
+				str_ptr++;
+				LCD_position++;
 			}
-			else
+			else if ((operation > 0) && (decimal_location2 > 15))
 			{
 				decimal_location2 = LCD_position;
+				send_10_bits(1,0,'.');
+				*str_ptr = '.';
+				str_ptr++;
+				LCD_position++;
 			}
-			*str_ptr = '.';
-			str_ptr++;
-			LCD_position++;
 			sei();
 			_delay_ms(10);
 		}
@@ -386,8 +394,8 @@ int main(void)
 				LCD_position = 0;
 				operation = 0;
 				has_equal_been_pressed = 0;
-				decimal_location1 = 20;
-				decimal_location2 = 20;
+				decimal_location1 = 32;
+				decimal_location2 = 64;
 			}
 			sei();
 			_delay_ms(10);    // see if can be deleted later
