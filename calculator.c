@@ -1,5 +1,8 @@
 /*
- * Calculator.c
+ * Calculator_ATMEGA644A_1.c
+ *
+ * Created: 10/21/2018 10:30:50 AM
+ * Author : root
  */ 
 
 #define F_CPU 1000000UL
@@ -7,12 +10,24 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-void send_10_bits(uint8_t reg_select, uint8_t read_or_write, uint8_t letter);
+void send_10_bits(uint8_t reg_select, uint8_t read_or_write, uint8_t data_byte);
 
 volatile uint8_t cnt;
 
 int main(void)
 {
+	char first_string[16];
+	char second_string[16];
+	char * str_ptr = &first_string[0];
+	
+	char test_char;
+	uint8_t LCD_position = 0;
+	uint8_t has_equal_been_pressed = 0;
+	uint8_t operation = 0;
+	volatile uint8_t decimal_location1 = 32;    // initialize these out of bounds, if out of bound then there is no decimal point
+	volatile uint8_t decimal_location2 = 32;
+	
+	
 	// Disable JTAG, free all of PortC
 	MCUCR = (1<<JTD);    // Need 2 times in 4 clock cycles to disable JTAG
 	MCUCR = (1<<JTD);
@@ -41,42 +56,28 @@ int main(void)
 	
 	send_10_bits(0,0,0x02);    // return home
 	
-	
 	//Function SET, DL = 1 (8-bit mode), N = 2 (lines),
 	// DATA-bits 5,4,3 ON
 	send_10_bits(0,0,0x38);    // 0b00111000
-
 
 	//DISPLAY ON
 	// RS, R/W still set from before
 	// D=1(display ON), C=0, B = 0 (C,B = Cursor stuff)
 	send_10_bits(0,0,0x0C);    // 0x0C = 0b00001100
 
-
 	// ENTRY MODE SET
 	// ID = 1, S = 0
 	send_10_bits(0,0,0x06);    // 0x06 = 0b00000110
 
-	
 	// rows are inputs, col = output = low 4 bits
-	
-	// put variables at top or bottom of main?
-	// strings that will be the numbers in the calculation
-	char first_string[16];
-	char second_string[16];
-	char * str_ptr = &first_string[0];
-	
-	char test_char;
-	uint8_t LCD_position = 0;
-	uint8_t has_equal_been_pressed = 0;
-	uint8_t operation = 0;
+	// strings will be the numbers in the calculation
 	
 	while (1)
 	{
 		// maybe put if (LCD_position < 16) ==> function that scans for button presses
 		
 		// Press 7
-		if (!(PORTA & (1<<PA0)) && !(PINA & (1<<PINA4)) && LCD_position < 16 && has_equal_been_pressed == 0) 
+		if (!(PORTA & (1<<PA0)) && !(PINA & (1<<PINA4)) && (LCD_position < 16) && has_equal_been_pressed == 0) 
 		{
 			cli();
 			send_10_bits(1,0,'7');    // print 7 on top right button
@@ -92,7 +93,7 @@ int main(void)
 		}
 		
 		// Press 8
-		if (!(PORTA & (1<<PA0)) && !(PINA & (1<<PINA5)) && LCD_position < 16 && has_equal_been_pressed == 0) 
+		if (!(PORTA & (1<<PA0)) && !(PINA & (1<<PINA5)) && (LCD_position < 16) && has_equal_been_pressed == 0) 
 		{
 			cli();
 			send_10_bits(1,0,'8');
@@ -107,7 +108,7 @@ int main(void)
 		}
 		
 		// Press 9
-		if (!(PORTA & (1<<PA0)) && !(PINA & (1<<PINA6)) && LCD_position < 16 && has_equal_been_pressed == 0) 
+		if (!(PORTA & (1<<PA0)) && !(PINA & (1<<PINA6)) && (LCD_position < 16) && has_equal_been_pressed == 0) 
 		{
 			cli();
 			send_10_bits(1,0,'9');
@@ -122,7 +123,7 @@ int main(void)
 		}
 		
 		// Press 6
-		if (!(PORTA & (1<<PA1)) && !(PINA & (1<<PINA6)) && LCD_position < 16 && has_equal_been_pressed == 0) 
+		if (!(PORTA & (1<<PA1)) && !(PINA & (1<<PINA6)) && (LCD_position < 16) && has_equal_been_pressed == 0) 
 		{
 			cli();
 			send_10_bits(1,0,'6');
@@ -137,7 +138,7 @@ int main(void)
 		}
 		
 		// Press 5
-		if (!(PORTA & (1<<PA1)) && !(PINA & (1<<PINA5)) && LCD_position < 16 && has_equal_been_pressed == 0) 
+		if (!(PORTA & (1<<PA1)) && !(PINA & (1<<PINA5)) && (LCD_position < 16) && has_equal_been_pressed == 0) 
 		{
 			cli();
 			send_10_bits(1,0,'5');
@@ -153,7 +154,7 @@ int main(void)
 		}
 		
 		// Press 4
-		if (!(PORTA & (1<<PA1)) && !(PINA & (1<<PINA4)) && LCD_position < 16 && has_equal_been_pressed == 0) 
+		if (!(PORTA & (1<<PA1)) && !(PINA & (1<<PINA4)) && (LCD_position < 16) && has_equal_been_pressed == 0) 
 		{
 			cli();
 			send_10_bits(1,0,'4');
@@ -168,7 +169,7 @@ int main(void)
 		}
 		
 		// Press 1
-		if (!(PORTA & (1<<PA2)) && !(PINA & (1<<PINA4)) && LCD_position < 16 && has_equal_been_pressed == 0) 
+		if (!(PORTA & (1<<PA2)) && !(PINA & (1<<PINA4)) && (LCD_position < 16) && has_equal_been_pressed == 0) 
 		{
 			cli();
 			send_10_bits(1,0,'1');
@@ -183,7 +184,7 @@ int main(void)
 		}
 		
 		// Press 2
-		if (!(PORTA & (1<<PA2)) && !(PINA & (1<<PINA5)) && LCD_position < 16 && has_equal_been_pressed == 0) 
+		if (!(PORTA & (1<<PA2)) && !(PINA & (1<<PINA5)) && (LCD_position < 16) && has_equal_been_pressed == 0) 
 		{
 			cli();
 			send_10_bits(1,0,'2');
@@ -199,7 +200,7 @@ int main(void)
 		}
 		
 		// Press 3
-		if (!(PORTA & (1<<PA2)) && !(PINA & (1<<PINA6)) && LCD_position < 16 && has_equal_been_pressed == 0) 
+		if (!(PORTA & (1<<PA2)) && !(PINA & (1<<PINA6)) && (LCD_position < 16) && has_equal_been_pressed == 0) 
 		{
 			cli();
 			send_10_bits(1,0,'3');    
@@ -214,7 +215,7 @@ int main(void)
 		}
 		
 		// Press 0
-		if (!(PORTA & (1<<PA3)) && !(PINA & (1<<PINA5)) && LCD_position < 16 && has_equal_been_pressed == 0)
+		if (!(PORTA & (1<<PA3)) && !(PINA & (1<<PINA5)) && (LCD_position < 16) && has_equal_been_pressed == 0)
 		{
 			cli();
 			send_10_bits(1,0,'0');
@@ -226,6 +227,32 @@ int main(void)
 			*str_ptr = '0';
 			str_ptr++;    // increment pointer address
 			sei();
+		}
+		
+		// decimal point
+		if (!(PORTA & (1<<PA3)) && !(PINA & (1<<PINA4)) && (LCD_position < 16) && (has_equal_been_pressed == 0))
+		{
+			cli();
+			send_10_bits(1,0,'.');
+			while (!(PINA & (1<<PINA4)))
+			{
+				cli();
+			}
+
+			_delay_ms(10);    // may do not need this
+			if (operation == 0)    // +,-,*,/ not pressed yet
+			{
+				decimal_location1 = LCD_position;
+			}
+			else
+			{
+				decimal_location2 = LCD_position;
+			}
+			*str_ptr = '.';
+			str_ptr++;
+			LCD_position++;
+			sei();
+			_delay_ms(10);
 		}
 		
 		// Press + (top right)
@@ -245,6 +272,69 @@ int main(void)
 			
 			LCD_position++;
 			operation = 1;
+			sei();
+			_delay_ms(10);
+		}
+		
+		// Press - (row 2, col 4)
+		if (!(PORTA & (1<<PA1)) && !(PINA & (1<<PINA7)) && (LCD_position < 16) && (operation == 0)  && (has_equal_been_pressed == 0))
+		{
+			cli();
+			send_10_bits(1,0,'-');
+			while (!(PINA & (1<<PINA7)))
+			{
+				cli();
+			}
+			//sei();
+			_delay_ms(10);    // may do not need this
+			// end first string, start second string
+			*str_ptr = '\0';
+			str_ptr = &second_string[0];
+			
+			LCD_position++;
+			operation = 2;
+			sei();
+			_delay_ms(10);
+		}
+		
+		// Press * (row 3, col 4)
+		if (!(PORTA & (1<<PA2)) && !(PINA & (1<<PINA7)) && (LCD_position < 16) && (operation == 0)  && (has_equal_been_pressed == 0))
+		{
+			cli();
+			send_10_bits(1,0,'*');
+			while (!(PINA & (1<<PINA7)))
+			{
+				cli();
+			}
+			//sei();
+			_delay_ms(10);    // may do not need this
+			// end first string, start second string
+			*str_ptr = '\0';
+			str_ptr = &second_string[0];
+			
+			LCD_position++;
+			operation = 3;
+			sei();
+			_delay_ms(10);
+		}
+		
+		// Press / (row 4 col 3)
+		if (!(PORTA & (1<<PA3)) && !(PINA & (1<<PINA6)) && (LCD_position < 16) && (operation == 0)  && (has_equal_been_pressed == 0))
+		{
+			cli();
+			send_10_bits(1,0,'/');
+			while (!(PINA & (1<<PINA7)))
+			{
+				cli();
+			}
+			//sei();
+			_delay_ms(10);    // may do not need this
+			// end first string, start second string
+			*str_ptr = '\0';
+			str_ptr = &second_string[0];
+			
+			LCD_position++;
+			operation = 4;
 			sei();
 			_delay_ms(10);
 		}
@@ -296,6 +386,8 @@ int main(void)
 				LCD_position = 0;
 				operation = 0;
 				has_equal_been_pressed = 0;
+				decimal_location1 = 20;
+				decimal_location2 = 20;
 			}
 			sei();
 			_delay_ms(10);    // see if can be deleted later
@@ -307,25 +399,29 @@ int main(void)
 	}
 }
 
-void send_10_bits(uint8_t reg_select, uint8_t read_or_write, uint8_t letter)
+void send_10_bits(uint8_t reg_select, uint8_t read_or_write, uint8_t data_byte)
 {
 	PORTC = 0x00;
 	PORTD &= ~(1<<PD7);    // Enable Low
 	//_delay_ms(50);
-	if (read_or_write == 0) {
+	if (read_or_write == 0) 
+	{
 		PORTD &= ~(1<<PD5);
 	}
-	else {
+	else 
+	{
 		PORTD |= (1<<PD5);
 	}
 	
-	if (reg_select == 1) {
+	if (reg_select == 1) 
+	{
 		PORTD |= (1<<PD6);
 	}
-	else {
+	else 
+	{
 		PORTD &= ~(1<<PD6);
 	}
-	PORTC = letter;    // Data byte
+	PORTC = data_byte;    // Data byte
 	//_delay_ms(50);
 	PORTD |= (1<<PD7);    // Enable High
 	_delay_ms(10);
@@ -337,32 +433,40 @@ void send_10_bits(uint8_t reg_select, uint8_t read_or_write, uint8_t letter)
 // 0001 ==> 0010 ==> 0100 ==> 1000 ==> 0001 ...
 ISR(TIMER0_OVF_vect)
 {
-	if (cnt > 8) {
+	if (cnt > 8) 
+	{
 		cnt = 0;
 		PORTA = 0xFF;
 	}
-	if (cnt == 1) {
+	if (cnt == 1) 
+	{
 		PORTA = 0xFF;
 		PORTA &= ~(1<<PA0);
 	}
-	else if (cnt == 2) {
+	else if (cnt == 2)
+	{
 		PORTA = 0xFF;
 	}
-	else if (cnt == 3) {
+	else if (cnt == 3)
+	{
 		PORTA = 0xFF;
 		PORTA &= ~(1<<PA1);
 	}
-	else if (cnt == 4) {
+	else if (cnt == 4)
+	{
 		PORTA = 0xFF;
 	}
-	else if (cnt == 5) {
+	else if (cnt == 5)
+	{
 		PORTA = 0xFF;
 		PORTA &= ~(1<<PA2);
 	}
-	else if (cnt == 6) {
+	else if (cnt == 6)
+	{
 		PORTA = 0xFF;
 	}
-	else if (cnt == 7) {
+	else if (cnt == 7)
+	{
 		PORTA = 0xFF;
 		PORTA &= ~(1<<PA3);
 	}
